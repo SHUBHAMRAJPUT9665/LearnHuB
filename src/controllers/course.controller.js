@@ -117,7 +117,6 @@ const removeCourse = async (req, res) => {
   try {
     const { id } = req.params;
 
-    console.log(id);
 
     const course = await Course.findByIdAndDelete(id);
 
@@ -149,23 +148,24 @@ const addLectureCourseById = async (req, res) => {
       return res.status(404).json({ success: false, message: "Course with given ID does not exist" });
     }
 
-    const lectureData = { title, description };
-
-    if (req.file) {
-      console.log("Request file:", req.file);
+    const lectureData = { 
+      title, 
+      description,
+      lecture:{}
+     };
+ 
+    
       try {
         const lectureLocalPath = req.files?.lecture[0]?.path;
         const lectureFile = await uploadFile(lectureLocalPath);
         if (lectureFile) {
-          lectureData.thumbnail = {
-            public_id: lectureFile.public_id || "hii",
-            secure_url: lectureFile.secure_url,
-          };
+          lectureData.lecture.public_id = lectureFile.public_id
+          lectureData.lecture.secure_url = lectureFile.secure_url
         }
       } catch (error) {
         return res.status(500).json({ success: false, message: "Error while adding course lecture thumbnail", error: error.message });
       }
-    }
+  
 
     course.lectures.push(lectureData);
     course.numberOflecture = course.lectures.length;
@@ -177,7 +177,6 @@ const addLectureCourseById = async (req, res) => {
       course,
     });
   } catch (error) {
-    console.error("Error while adding course lecture:", error);
     return res.status(500).json({ success: false, message: "Error while adding course lecture", error: error.message });
   }
 };
