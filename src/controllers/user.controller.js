@@ -5,6 +5,7 @@ import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { sendEmail } from "../utils/sendEmail.js";
 import crypto from "crypto";
 import cloudinary from "cloudinary";
+import uploadFile from "../utils/upload.js";
 const cookieOptions = {
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
   httpOnly: true,
@@ -23,16 +24,14 @@ const register = async (req, res, next) => {
   if (userExists) {
     return next(new ApiError(409, "User with this email already exists"));
   }
+
   const avatarFile = req.files?.avatar[0]?.path;
   if (!avatarFile) {
     throw new ApiError(400, "Avatar and cover image files are required");
   }
-  const avatarLocalPath = avatarFile;
 
-  var avatarUploaded = await uploadOnCloudinary(avatarLocalPath);
-  if (!avatarUploaded) {
-    throw new ApiError(400, "Error uploading files to Cloudinary");
-  }
+
+  const avatarUploaded = await uploadFile(avatarFile,{width: 250, height: 250, gravity: "faces", crop: "fill"})
 
   const user = await User.create({
     fullName,
