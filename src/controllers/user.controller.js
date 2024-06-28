@@ -22,7 +22,11 @@ const register = async (req, res, next) => {
 
   const userExists = await User.findOne({ email });
   if (userExists) {
-    return next(new ApiError(409, "User with this email already exists"));
+    return res.status(409).json({
+      success:false,
+      message:"User with this email already exists",
+      data:{}
+    })
   }
 
   const avatarFile = req.files?.avatar[0]?.path;
@@ -30,8 +34,12 @@ const register = async (req, res, next) => {
     throw new ApiError(400, "Avatar and cover image files are required");
   }
 
-
-  const avatarUploaded = await uploadFile(avatarFile,{width: 250, height: 250, gravity: "faces", crop: "fill"})
+  const avatarUploaded = await uploadFile(avatarFile, {
+    width: 250,
+    height: 250,
+    gravity: "faces",
+    crop: "fill",
+  });
 
   const user = await User.create({
     fullName,
@@ -56,9 +64,21 @@ const register = async (req, res, next) => {
   const token = await user.generateJWTToken();
   res.cookie("token", token, cookieOptions);
 
-  return res
-    .status(201)
-    .json(new ApiResponse(201, createdUser, "User registered successfully"));
+  const subject = `Account Created to LEARN HUB`;
+
+  const message = `Your account has been successfully created, and you can now enjoy all the features and benefits we offer.
+  Here are your login details for quick reference:
+  Username: ${fullName}
+  Email: ${email}`;
+
+  await sendEmail(email, subject, message);
+
+  
+  return res.status(201).json({
+    success:true,
+    message:"user created succesfully",
+    data:createdUser
+  });
 };
 
 const login = async (req, res, next) => {
@@ -71,10 +91,24 @@ const login = async (req, res, next) => {
 
     const user = await User.findOne({ email }).select("+password");
 
+    if(!user){
+      return res
+      .status(401)
+      .json({
+        success:false,
+        message:"user does not exits",
+        data:{}
+      });
+    }
+
     if (!user || !(await user.comparePassword(password))) {
       return res
         .status(401)
-        .json(new ApiResponse(401, null, "Invalid Credentials"));
+        .json({
+          success:false,
+          message:"Invalid Credentials",
+          data:{}
+        });
     }
 
     const token = await user.generateJWTToken();
@@ -82,15 +116,11 @@ const login = async (req, res, next) => {
 
     res.cookie("token", token, cookieOptions);
 
-    return res
-      .status(200)
-      .json(
-        new ApiResponse(
-          200,
-          { user: loggedUser, token },
-          "User logged in successfully"
-        )
-      );
+    return res.status(200).json({
+        success:true,
+        message: "User logged in successfully",
+        data: loggedUser,token
+      })
   } catch (error) {
     return next(new ApiError(400, error.message));
   }
@@ -103,27 +133,48 @@ const logout = async (req, res) => {
     httpOnly: true,
     sameSite: "Strict",
   });
+
   return res
     .status(200)
-    .json(new ApiResponse(200, "User logged out successfully"));
+    .json({
+      success:true,
+      message:"User logged out successfully",
+      data:{}
+});
 };
 
 const getProfile = async (req, res, next) => {
   try {
     const userId = req.user._id;
     if (!userId) {
-      return next(new ApiError(400, "User ID is missing"));
+      return res.status(400).json({
+        success:false,
+        message:"User ID is missing",
+        data:{}
+      })
     }
 
     const user = await User.findById(userId);
 
     if (!user) {
-      return next(new ApiError(404, "User not found"));
+      return res.status(400).json({
+        success:false,
+        message:"User not found",
+        data:{}
+      })
     }
 
-    return res.status(200).json(new ApiResponse(200, user));
+    return res.status(200).json({
+      success:true,
+      message:"user fetched",
+      data:user
+    })
   } catch (error) {
-    return next(new ApiError(400, error.message));
+    return res.status(400).json({
+      success:false,
+      message:error.message,
+      data:{}
+    }) 
   }
 };
 
@@ -266,8 +317,7 @@ const updateUser = async (req, res) => {
       throw new ApiError(400, "Error uploading files to Cloudinary");
     }
     user.avatar.secure_url = avatarUploaded.url;
-    user.avatar.public_id = avatarUploaded.public_id || email
-
+    user.avatar.public_id = avatarUploaded.public_id || email;
   }
 
   await user.save();
@@ -276,11 +326,9 @@ const updateUser = async (req, res) => {
     new ApiResponse(200, {
       success: true,
       message: "user details updated successfully",
-      user
+      user,
     })
   );
-  
-
 };
 
 const getUser = async (req, res) => {
@@ -298,5 +346,5 @@ export {
   resetPassword,
   getUser,
   changePassword,
-  updateUser
+  updateUser,
 };

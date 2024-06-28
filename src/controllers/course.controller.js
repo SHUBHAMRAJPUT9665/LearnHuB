@@ -5,17 +5,18 @@ import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import uploadFile from "../utils/upload.js";
 const getAllCourses = async (req, res) => {
   try {
-    const course = await Course.find({}).select("-lecture");
+    const courses = await Course.find({}).select("-lecture");
 
-    res.status(200).json(
-      new ApiResponse(200, {
-        success: true,
-        message: "All Courses",
-        course,
+    res.status(200).json({
+        courses
       })
-    );
+  
   } catch (error) {
-    throw new ApiError(400, error.message);
+    return res.status(400).json({
+      success:false,
+      message:error.message,
+      data:{}
+    })
   }
 };
 
@@ -46,7 +47,13 @@ const createCourse = async (req, res) => {
   try {
     const { title, description, category, createdBy } = req.body;
     if (!title || !description || !category || !createdBy) {
-      throw new ApiError(400, "All fields are required");
+      return res
+      .status(400)
+      .json({ 
+        success:false,
+        message: "All field required",
+        data:{}
+      });
     }
 
     const thumbnailLocalPath = req.files?.thumbnail[0]?.path;
@@ -76,7 +83,11 @@ const createCourse = async (req, res) => {
     }
     return res
       .status(201)
-      .json(new ApiResponse(201, createdCourse, "course created successfully"));
+      .json({ 
+        success:true,
+        message: "course created successfully",
+        data:createdCourse
+      });
   } catch (error) {
     throw new ApiError(401, error, "Error while creating course");
   }

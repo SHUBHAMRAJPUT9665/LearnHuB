@@ -7,16 +7,18 @@ import {
   allPayments,
 } from "../controllers/payment.controller.js";
 
+import { isLoggedIn,authorizedRoles } from "../middleware/auth.middleware.js";
+
 const router = Router();
 
-router.route("/razorpay-key").get(getRazorpayApiKey);
+router.route("/razorpay-key").get(isLoggedIn,getRazorpayApiKey);
 
-router.route("/subscribe").post(buyScription);
+router.route("/subscribe").post(isLoggedIn,buyScription);
 
-router.route("/verify").post(verifySubscription);
+router.route("/verify").post(isLoggedIn,verifySubscription);
 
-router.route("/unsubscribe").post(cancelScription);
+router.route("/unsubscribe").post(isLoggedIn,cancelScription);
 
-router.route("/").get(allPayments);
+router.route("/").get(isLoggedIn,authorizedRoles,allPayments);
 
 export default router;
