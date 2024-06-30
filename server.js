@@ -1,9 +1,9 @@
 import {config} from 'dotenv'
 config()
-import {app} from './app.js'
-import connectDB from './db/index.js'
+import { app } from './src/app.js'
+import connectDB from './src/db/index.js'
 
-
+const a = 3;
 connectDB()
   .then(() => {
     app.listen(process.env.PORT || 8000, () => {
@@ -17,3 +17,6 @@ connectDB()
   .catch((err) => {
     console.log("MONGODB db connection failed!!", err);
   });
+
+
+  export default a
